@@ -1,5 +1,7 @@
 from typing import Optional
 import inspect
+import pandas as pd
+
 
 def search_docstring(
         obj,
@@ -24,9 +26,22 @@ def search_docstring(
         relevant_lines = all_lines
     print(*relevant_lines, sep='\n')
 
+
 def print_signature(obj):
     """
     print the function signature
     """
-    for x in inspect.signature(obj).parameters.values():
-        print(x)
+    sig = inspect.signature(obj)
+    print(f'return value = {sig.return_annotation}')
+    df = pd.DataFrame({k: {'default': describe_empty(v.default), 'type': describe_empty(v.annotation)}
+                       for k, v in sig.parameters.items()})
+    print(df.T.to_markdown())
+
+
+def describe_empty(obj):
+    if obj == inspect._empty:
+        return '<empty>'
+    elif obj == None:
+        return 'None'
+    else:
+        return obj
