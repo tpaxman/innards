@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 import inspect
 import pandas as pd
@@ -9,7 +10,9 @@ def search_docstring(
         casesensitive: bool = False,
         after: Optional[int] = None,
         before: Optional[int] = None,
-        context: Optional[int] = None
+        context: Optional[int] = None,
+        *args,
+        **kwargs
 ) -> None:
     """
     Searches within a docstring of an object
@@ -33,9 +36,26 @@ def print_signature(obj):
     """
     sig = inspect.signature(obj)
     print(f'return value = {sig.return_annotation}')
-    df = pd.DataFrame({k: {'default': describe_empty(v.default), 'type': describe_empty(v.annotation)}
-                       for k, v in sig.parameters.items()})
-    print(df.T.to_markdown())
+
+    d = {}
+    for x in sig.parameters.values():
+        bustup = re.split(r'\s*[:|=]\s*', str(x))
+        name = bustup[0]
+        if len(bustup) == 1:
+            type_ = ''
+            default = ''
+        elif len(bustup) == 2:
+            type_ = bustup[1]
+            default = ''
+        elif len(bustup) == 3:
+            type_ = bustup[1]
+            default = bustup[2]
+
+        descrip = x.kind.description
+        d[name] = {'type': type_, 'default': default, 'arg-category': descrip}
+
+    df = pd.DataFrame(d)
+    print(df.T.rename_axis('arg-name').to_markdown())
 
 
 def describe_empty(obj):
